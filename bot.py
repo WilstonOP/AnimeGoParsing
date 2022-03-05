@@ -1,10 +1,12 @@
 import telebot
-from Parsing_anime import check_anime, list_anime, best_anime, random_anime, test_anime
-# from multiprocessing import *
-import time
+from Parsing_anime import *
 
-TOKEN = '5228438431:AAG6m2GT9nktB1Dd2bxJ8tYNqeNMSsoFPgY'
-bot = telebot.TeleBot(TOKEN)
+try:
+    with open("config", mode="r") as f:
+        token = f.readline()
+except:
+    print('Не найден токен в конфиге')
+bot = telebot.TeleBot(token)
 
 
 @bot.message_handler(commands=['start'])
@@ -18,7 +20,7 @@ def decode(message):
     m = message.text
     n = str(m[7:])
     bot.reply_to(message, f"Поиск аниме, которое смотрит пользователь {n}")
-    info = "\n".join(check_anime(nickname=n))
+    info = check_anime(nickname=n)
     if info:
         bot.send_message(message.from_user.id, info)
     else:
@@ -31,13 +33,17 @@ def decode(message):
     n = str(m).split()
     bot.reply_to(message, f"Поиск аниме, которое уже просмотрел пользователь {n[1]}")
     info = list_anime(n[1])
-    if int(n[2]) > len(info):
+    try:
+        temp = n[2]
+    except IndexError:
+        temp = len(info)
+    if int(temp) > len(info):
         bot.send_message(message.from_user.id, f"Вы указали большее кол-во, чем есть, будет выведено всё")
         for i in range(len(info)):
             bot.send_message(message.from_user.id, f"{info[i]['name']},\nОценка {info[i]['rate']}")
 
     else:
-        for i in range(int(n[2])):
+        for i in range(int(temp)):
             bot.send_message(message.from_user.id, f"{info[i]['name']},\nОценка {info[i]['rate']}")
 
 
@@ -46,7 +52,11 @@ def decode(message):
     bot.send_message(message.from_user.id, best_anime())
 
 
-@bot.message_handler(commands=['test'])
+@bot.message_handler(commands=['update'])
+def decode(message):
+    bot.send_message(message.from_user.id, update_anime())
+
+@bot.message_handler(commands=['popular'])
 def decode(message):
     try:
         m = message.text.split()[1]
@@ -54,7 +64,7 @@ def decode(message):
         m = 3
 
     bot.send_message(message.from_user.id, 'Это может занять какое-нибудь время...')
-    bot.send_message(message.from_user.id, test_anime(int(m)))
+    bot.send_message(message.from_user.id, popular_anime(int(m)))
 
 
 @bot.message_handler(commands=['random'])

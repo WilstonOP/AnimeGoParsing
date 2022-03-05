@@ -1,58 +1,46 @@
 import bs4
 import requests
 from fake_useragent import UserAgent
-from selenium import webdriver
-import operator
 
-global LAST_SER
-LAST_SER = 0
-global SITES
-SITES = list()
 ua = UserAgent()
-headers = {"User-Agent": ua}
-
-
-# rec = requests.get("https://animego.org/anime/reyting-korolya-m1883")
-# s_soup = bs4.BeautifulSoup(rec.text, 'lxml')
+header = {"User-Agent": ua.chrome}
 
 
 def check_anime(nickname):
-    request = requests.get('https://animego.org/user/' + nickname + '/mylist/anime/watching').text
+    sites = list()
+    request = requests.get('https://animego.org/user/' + nickname + '/mylist/anime/watching', headers=header).text
     soup = bs4.BeautifulSoup(request, 'lxml')
-    temp = soup.find_all('td', class_='text-left table-100')
-    for i in temp:
-        SITES.append(f'https://animego.org{(i.find("a").get("href"))}')
-    for site in SITES:
-        rec = requests.get(site)
-        s_soup = bs4.BeautifulSoup(rec.text, 'lxml')
-        result = list()
-        result.append(f"{s_soup.title.text.rstrip('смотреть онлайн — Аниме')}")
-
-        # for i in s_soup.find_all("div", class_='row m-0')[1:]:
-        # print(i.text)
-        try:
-            result.append(
-                f"На данный момент доступно {s_soup.find_all('dd', class_='col-6 col-sm-8 mb-1')[1].text} серий\n")
-        except IndexError:
-            print('Ой')
-        if result:
-            yield '\n'.join(result)
-        else:
-            yield 'Не могу найти данного пользователя'
+    temp = soup.find_all('tr')
+    result = list()
+    for i in temp[1:]:
+        name = i.find(class_='text-left table-100').find('a').text
+        series, type = i.find_all('td', class_='text-left text-md-center table-100')[1].text,  i.find_all('td', class_='text-left text-md-center table-100')[2].text
+        print(series, type, name)
+        print(result)
+    print(' '.join(result))
+    return '\n'.join(result)
 
 
-def list_anime(nickname):
-    res = requests.get('https://animego.org/user/' + nickname + '/mylist/anime/completed').text
-    soup = bs4.BeautifulSoup(res, 'lxml')
+def list_anime(nickname, n=10):
     anime_list = list()
-    anime = soup.find_all('td')
-    i = 1
-    while i < len(anime) - 4:
-        anime_list.append(
-            {'name': '|'.join((anime[i].text.strip().split('\n            '))), 'rate': anime[i + 1].text.strip(),
-             'series': anime[i + 2].text.strip(), 'type': anime[i + 3].text.strip()})
-        i += 5
-
+    for page in range(1, 10):
+        link = f'https://animego.org/user/{nickname}/mylist/anime/completed?type=mylist&page='
+        link += str(page)
+        resp = requests.get(link, headers=header)
+        print(link)
+        if resp.status_code == 200:
+            print(f'Сайт {link}')
+            res = resp.text
+            soup = bs4.BeautifulSoup(res, 'lxml')
+            anime = soup.find_all('td')
+            i = 1
+            while i < len(anime) - 4:
+                anime_list.append(
+                    {'name': '|'.join((anime[i].text.strip().split('\n            '))), 'rate': anime[i + 1].text.strip(),
+                     'series': anime[i + 2].text.strip(), 'type': anime[i + 3].text.strip()})
+                i += 5
+        else:
+            break
     if anime_list:
         return anime_list
     else:
@@ -60,23 +48,21 @@ def list_anime(nickname):
 
 
 def best_anime():
-    res = requests.get('https://animego.org/anime?sort=r.rating&direction=desc').text
+    res = requests.get('https://animego.org/anime?sort=r.rating&direction=desc', headers=header).text
     soup = bs4.BeautifulSoup(res, 'lxml')
     temp = soup.find_all('div', class_='h5 font-weight-normal mb-1')
     anime_list = list()
     for a in temp:
         elem = f"{a.text}, {a.find('a').get('href')}\n"
         anime_list.append(elem)
-    print(len(anime_list))
     return ' '.join(anime_list)
 
 
-def test_anime(n=3):
+def popular_anime(n=3):
     anime_list = list()
     for i in range(1, n):
         link = "https://animego.org/anime?sort=r.rating&direction=desc&type=animes&page=" + str(i)
-        print(link)
-        res = requests.get(link).text
+        res = requests.get(link, headers=header).text
         soup = bs4.BeautifulSoup(res, 'lxml')
         temp = soup.find_all('div', class_='h5 font-weight-normal mb-1')
         for a in temp:
@@ -85,8 +71,6 @@ def test_anime(n=3):
             soup1 = bs4.BeautifulSoup(res1, 'lxml')
             genres = soup1.find_all('dd', class_='col-6 col-sm-8 mb-1 overflow-h')
             for elem in range(0, len(genres) - 1, 2):
-                print(genres[elem].text.split(',                             '))
-                print('Абоба')
                 genre = ', '.join(genres[elem].text.split(',                             '))
                 studio = genres[elem + 1].text
             temp2 = soup1.find('div', class_='pr-2')
@@ -101,29 +85,26 @@ def test_anime(n=3):
             for key, value in i.items():
                 final += f'{str(key)}: {str(value)}\n'
             final += '\n'
-        print('Финал')
         return final
 
 
 def random_anime():
-    res = requests.get('https://animego.org/anime/random').text
+    res = requests.get('https://animego.org/anime/random', headers=header).text
     soup = bs4.BeautifulSoup(res, 'lxml')
     anime_list = list()
     anime_list.append(f"Название: {soup.find('div', class_='anime-title').find('h1').text}")
-    anime_list.append(f"Жанры: {', '.join(soup.find('dd', class_='col-6 col-sm-8 mb-1 overflow-h').text.split())}")
+    anime_list.append(f"Жанры: {' '.join(soup.find('dd', class_='col-6 col-sm-8 mb-1 overflow-h').text.split())}")
     if (soup.find('div', class_='pr-2').text.split()[0]) == 'Нет':
         anime_list.append('Нет оценок')
     else:
         anime_list.append(f"Оценка: {soup.find('div', class_='pr-2').text[:6]}")
-    anime_list.append(soup.find('a', class_='btn btn-primary btn-block d-flex align-items-center justify-content-center br-2 cursor-pointer').get('href'))
-
     return '\n'.join(anime_list)
 
 
 def loop_new_check():
     global LAST_SER
     result = list()
-    rec = requests.get("https://animego.org/anime/reyting-korolya-m1883")
+    rec = requests.get("https://animego.org/anime/reyting-korolya-m1883", headers=header)
     s_soup = bs4.BeautifulSoup(rec.text, 'lxml')
     for i in s_soup.find('span', class_="d-none d-sm-inline"):
         current = (''.join([i for i in i.text if i.isdigit()]))
