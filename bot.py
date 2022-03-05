@@ -1,5 +1,5 @@
 import telebot
-from Parsing_anime import check_anime, list_anime, best_anime, random_anime
+from Parsing_anime import check_anime, list_anime, best_anime, random_anime, test_anime
 # from multiprocessing import *
 import time
 
@@ -45,9 +45,22 @@ def decode(message):
 def decode(message):
     bot.send_message(message.from_user.id, best_anime())
 
+
+@bot.message_handler(commands=['test'])
+def decode(message):
+    try:
+        m = message.text.split()[1]
+    except:
+        m = 3
+
+    bot.send_message(message.from_user.id, 'Это может занять какое-нибудь время...')
+    bot.send_message(message.from_user.id, test_anime(int(m)))
+
+
 @bot.message_handler(commands=['random'])
 def decode(message):
     bot.send_message(message.from_user.id, random_anime())
+
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
