@@ -6,19 +6,33 @@ ua = UserAgent()
 header = {"User-Agent": ua.chrome}
 
 
+def update_anime():
+    result = list()
+    req = requests.get('https://animego.org/', headers=header).text
+    soup = bs4.BeautifulSoup(req, 'lxml')
+    temp = soup.find('div', role='tabpanel')
+    for i in temp:
+        print(i.text)
+        print(i.get('onclick'))
+
+
 def check_anime(nickname):
-    sites = list()
     request = requests.get('https://animego.org/user/' + nickname + '/mylist/anime/watching', headers=header).text
     soup = bs4.BeautifulSoup(request, 'lxml')
     temp = soup.find_all('tr')
     result = list()
     for i in temp[1:]:
         name = i.find(class_='text-left table-100').find('a').text
-        series, type = i.find_all('td', class_='text-left text-md-center table-100')[1].text,  i.find_all('td', class_='text-left text-md-center table-100')[2].text
-        print(series, type, name)
-        print(result)
-    print(' '.join(result))
-    return '\n'.join(result)
+        series, anime_type = [i.find_all('td', class_='text-left text-md-center table-100')[1].text,
+                              i.find_all('td', class_='text-left text-md-center table-100')[2].text]
+        result.append({'Название': name.strip(), 'Серии': series.strip(), 'Тип': anime_type.strip()})
+        print(series, anime_type)
+    final = ''
+    for i in result:
+        for key, value in i.items():
+            final += f'{str(key)}: {str(value)}\n'
+        final += '\n'
+    return final
 
 
 def list_anime(nickname, n=10):

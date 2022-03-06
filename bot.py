@@ -4,7 +4,7 @@ from Parsing_anime import *
 try:
     with open("config", mode="r") as f:
         token = f.readline()
-except:
+except EOFError:
     print('Не найден токен в конфиге')
 bot = telebot.TeleBot(token)
 
@@ -56,11 +56,12 @@ def decode(message):
 def decode(message):
     bot.send_message(message.from_user.id, update_anime())
 
+
 @bot.message_handler(commands=['popular'])
 def decode(message):
     try:
         m = message.text.split()[1]
-    except:
+    except IndexError:
         m = 3
 
     bot.send_message(message.from_user.id, 'Это может занять какое-нибудь время...')
@@ -74,12 +75,11 @@ def decode(message):
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
-    # bot.send_message(message.chat.id, message.text)
     if message.text == "Привет":
         bot.send_message(message.from_user.id, "Привет, чем я могу тебе помочь?")
     elif message.text == "help":
         bot.send_message(message.from_user.id, "</check + 'Ваш никнейм'> - текущее аниме\n"
-                                               "<</list + 'Ваш никнейм' + 'Кол-во записей' - просмотренное аниме")
+                                               "</list + 'Ваш никнейм' + 'Кол-во записей' - просмотренное аниме")
     elif message.text == "Инфо Хозяин":
         bot.send_message(message.from_user.id, "Секунду")
         info = "\n".join(check_anime(nickname='Notsliw'))
