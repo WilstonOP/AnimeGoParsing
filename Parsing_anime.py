@@ -12,8 +12,9 @@ def update_anime():
     soup = bs4.BeautifulSoup(req, 'lxml')
     temp = soup.find('div', role='tabpanel')
     for i in temp:
-        print(i.text)
-        print(i.get('onclick'))
+        result.append({'Название': i.find('span').text, 'Серия': i.find('div', class_='ml-3 text-right').text,
+                       'Ссылка': 'https://animego.org' + i.get('onclick').strip("'location.href='")})
+    return packing(result)
 
 
 def check_anime(nickname):
@@ -26,31 +27,36 @@ def check_anime(nickname):
         series, anime_type = [i.find_all('td', class_='text-left text-md-center table-100')[1].text,
                               i.find_all('td', class_='text-left text-md-center table-100')[2].text]
         result.append({'Название': name.strip(), 'Серии': series.strip(), 'Тип': anime_type.strip()})
-        print(series, anime_type)
-    final = ''
-    for i in result:
-        for key, value in i.items():
-            final += f'{str(key)}: {str(value)}\n'
-        final += '\n'
-    return final
+    return packing(result)
 
 
-def list_anime(nickname, n=10):
+def season_anime():
+    result = list()
+    req = requests.get('https://animego.org/', headers=header).text
+    soup = bs4.BeautifulSoup(req, 'lxml')
+    temp = soup.find_all('div', class_='position-relative')
+    temp2 = soup.find_all('div', class_='h5 font-weight-normal mb-2 card-title carousel-item-title text-truncate')
+    temp3 = soup.find('a', class_='text-dark text__underline__link').text
+    for i, j in zip(temp, temp2):
+        result.append({'Название': j.text, 'Ссылка': i.find('a').get('href')})
+    return temp3 + '\n\n' + packing(result)
+
+
+def list_anime(nickname):
     anime_list = list()
-    for page in range(1, 10):
+    for page in range(1, 2):
         link = f'https://animego.org/user/{nickname}/mylist/anime/completed?type=mylist&page='
         link += str(page)
         resp = requests.get(link, headers=header)
-        print(link)
         if resp.status_code == 200:
-            print(f'Сайт {link}')
             res = resp.text
             soup = bs4.BeautifulSoup(res, 'lxml')
             anime = soup.find_all('td')
             i = 1
             while i < len(anime) - 4:
                 anime_list.append(
-                    {'name': '|'.join((anime[i].text.strip().split('\n            '))), 'rate': anime[i + 1].text.strip(),
+                    {'name': '|'.join((anime[i].text.strip().split('\n            '))),
+                     'rate': anime[i + 1].text.strip(),
                      'series': anime[i + 2].text.strip(), 'type': anime[i + 3].text.strip()})
                 i += 5
         else:
@@ -93,13 +99,7 @@ def popular_anime(n=3):
                 anime_list.append({'Название': name, 'Ссылка': link2, 'Рейтинг': rate, 'Голоса': votes,
                                    'Жанр': genre, 'Студия': studio})
     sorted_salaries = sorted(anime_list, key=lambda d: int(d['Голоса']), reverse=True)
-    final = ''
-    if sorted_salaries:
-        for i in sorted_salaries[0:12]:
-            for key, value in i.items():
-                final += f'{str(key)}: {str(value)}\n'
-            final += '\n'
-        return final
+    return packing(sorted_salaries[0:13])
 
 
 def random_anime():
@@ -115,25 +115,13 @@ def random_anime():
     return '\n'.join(anime_list)
 
 
-def loop_new_check():
-    global LAST_SER
-    result = list()
-    rec = requests.get("https://animego.org/anime/reyting-korolya-m1883", headers=header)
-    s_soup = bs4.BeautifulSoup(rec.text, 'lxml')
-    for i in s_soup.find('span', class_="d-none d-sm-inline"):
-        current = (''.join([i for i in i.text if i.isdigit()]))
-    if int(current) == '':
-        result.append('Аниме закончилось(')
-    elif int(current) == int(LAST_SER):
-        result.append(f"Серия {int(LAST_SER) - 1} вышла!, Ждем теперь {int(LAST_SER)}")
-        result.extend(new_check())
-        LAST_SER = int(LAST_SER) + 1
-    elif int(current) > int(LAST_SER):
-        LAST_SER = current
-        result.append(f"Я неусмотрела за последней серией. Теперь последняя доступная серия - {int(current) - 1}")
-    elif int(current) < int(LAST_SER):
-        current = current
-        result.append(f"{current} к сожалению еще не вышла. Ждем!")
-        result.extend(new_check())
-        print(result)
-    return '\n'.join(result)
+def packing(result):
+    if result:
+        final = ''
+        for i in result:
+            for key, value in i.items():
+                final += f'{str(key)}: {str(value)}\n'
+            final += '\n'
+        return final
+    else:
+        return 'Ошибка. Пустой ответ'
