@@ -97,7 +97,8 @@ def get_text_messages(message):
                                                '/popular + \'число(длительность поиска, не рекомендуется выставлять '
                                                'больше 5 - будет обрабатываться больше минуты, по умолчанию - 3)\' - '
                                                'вывод самого популярного аниме\n '
-                                               '/update- вывод обновленного аниме\n')
+                                               '/update - вывод обновленного аниме\n'
+                                               '/best - вывод аниме с наилучшим рейтингом')
     elif message.text == "Инфо Хозяин":
         bot.send_message(message.from_user.id, "Секунду")
         info = "\n".join(check_anime(nickname='Notsliw'))
